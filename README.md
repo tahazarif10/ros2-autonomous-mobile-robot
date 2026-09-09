@@ -49,6 +49,8 @@ library at a pinned commit rather than duplicating planner/controller math insid
 │   ├── ARCHITECTURE.md
 │   ├── CONTROL_ADAPTER.md
 │   ├── NAV2_FIXTURE.md
+│   ├── OBSERVABILITY.md
+│   ├── REPLAY.md
 │   ├── VERIFICATION.md
 │   └── ROADMAP.md
 └── .github/workflows/
@@ -57,25 +59,28 @@ library at a pinned commit rather than duplicating planner/controller math insid
 
 ## Current status
 
-**v0.3 Nav2 integration — complete**
+**v0.4 replay, observability, and fault injection — complete**
 
-The repository includes the v0.2 lifecycle control-core adapter plus a deterministic Nav2 system fixture built on Nav2's loopback simulator.
+The repository now combines the lifecycle control-core adapter and deterministic
+Nav2 fixture with software-level failure handling and replay evidence:
 
-The checked-in v0.3 scenario uses:
+- diagnostics with stable stop reasons and input ages
+- NaN, stale-odometry, and stale-path fault injection with zero-command safe stop
+- a real rosbag2 sqlite3 fixture generated from checked-in source data
+- the same bag replayed twice through the live lifecycle adapter with identical canonical outcomes
+- captured bag-span, replay-pacing, command-count, diagnostic-count, and bounded-command metrics
+- a missing-TF Nav2 regression that removes `map -> odom` / `odom -> base_link`, verifies `bt_navigator` never becomes ACTIVE, and verifies no non-zero `cmd_vel`
+- test-graph isolation so concurrently executed ROS 2 packages cannot contaminate each other's odometry or command topics
 
-- a 6 m × 6 m static map
-- start pose `(-2.0, 0.0)`
-- goal pose `(2.0, 0.0)`
-- a central obstacle that blocks the direct path
-- NavFn with A* enabled
-- Regulated Pure Pursuit
-- explicit `map -> odom -> base_link -> base_scan` TF ownership
-- documented QoS assumptions
-- launch-level assertions for goal success, obstacle clearance, final position tolerance, and a non-trivial detour
+The checked-in v0.3 navigation scenario remains a 6 m × 6 m fixture using NavFn
+with A* enabled and Regulated Pure Pursuit. All navigation, timing, and replay
+results are explicitly scoped to the checked-in software fixtures and are not
+physical-hardware or safety-certification claims.
 
-Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md), and the fixture contract is documented in [`docs/NAV2_FIXTURE.md`](docs/NAV2_FIXTURE.md).
-
-No hardware-performance claims are made by this repository. Simulation and regression results are scoped only to the exact checked-in fixtures and configurations used to produce them.
+Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+Replay and failure-handling contracts are documented in
+[`docs/REPLAY.md`](docs/REPLAY.md) and
+[`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md).
 
 ## Build
 

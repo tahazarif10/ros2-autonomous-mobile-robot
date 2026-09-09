@@ -36,12 +36,14 @@ The roadmap is evidence-driven. A milestone is complete only when its implementa
 
 ## v0.4 — Replay and observability
 
-- [ ] rosbag replay fixture
-- [ ] deterministic replay regression runner
+- [x] rosbag2 sqlite3 replay fixture generated from checked-in source data
+- [x] deterministic two-pass replay regression with equal canonical outcomes
 - [x] lifecycle control diagnostics with stable stop reasons
-- [ ] replay timing and controller metrics
+- [x] replay timing and controller metrics
 - [x] stale odometry/path and non-finite input fault injection
-- [ ] missing-TF navigation fault injection
+- [x] missing-TF navigation fail-closed regression
+- [x] concurrent ROS test-graph isolation
+- [x] merged-main CI evidence recorded
 
 ## v0.5 — Simulation qualification
 

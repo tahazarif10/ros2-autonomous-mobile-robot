@@ -124,3 +124,65 @@ The hosted integration test verifies the real lifecycle node through ROS 2 topic
 ## v0.4 slice 1 evidence scope
 
 This verifies software-level failure handling and observability at the lifecycle control boundary. The full v0.4 milestone remains open until rosbag replay, replay repeatability, missing-TF navigation injection, and replay/timing evidence are implemented.
+
+
+## v0.4 — Replay, observability, and fault injection
+
+Status: **complete**
+
+### Slice 1 — control diagnostics and input fault injection
+
+- merge commit: `65824d8047e241482b830fc11e55707a77b4a6f1`
+- PR: [#10](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/pull/10)
+- merged-main CI: [#34388363553](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34388363553) — **success**
+
+Verified: stable diagnostic stop reasons, input ages, NaN/non-finite input handling,
+stale odometry, stale path, and zero-command safe stop.
+
+### Slice 2 — deterministic rosbag2 replay
+
+- merge commit: `8cce3eefdc105eb1917a3adad2b507dcbf498935`
+- PR: [#11](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/pull/11)
+- merged-main CI: [#34389798773](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34389798773) — **success**
+
+The test generates a real sqlite3 rosbag using the ROS 2 Jazzy
+`rosbag2_py.SequentialWriter`, then replays the same bag twice through the live
+C++ lifecycle adapter using `SequentialReader`. Both runs must produce the same
+canonical outcome: normal motion observed, goal reached, and final zero command.
+
+### Slice 3 — missing-TF fail-closed behavior and replay metrics
+
+- merge commit: `6942d60e7e31be21f0914fac73c0e319149c62cc`
+- PR: [#12](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/pull/12)
+- PR CI: [#34394204856](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34394204856) — **success**
+
+Verified:
+
+- loopback localization/odometry can be intentionally disabled
+- `map -> base_link` remains unavailable when the required TF provider is removed
+- `bt_navigator` never reaches ACTIVE state in the observation window
+- no non-zero `cmd_vel` is published
+- replay fixture contains 8 messages spanning 1.2 s of recorded time at 2.0× configured pacing
+- replay captures wall duration, maximum linear command, command sample count, and diagnostic sample count with CI-safe bounded assertions
+
+### CI isolation fix discovered by merged-main verification
+
+The first main-branch run after #12 exposed cross-test graph contamination rather
+than an algorithm failure: package-level parallel test execution allowed a replay
+`/odom` sample to be observed by the Nav2 trajectory checker.
+
+The fix was implemented without relaxing the collision assertion:
+
+- stabilization merge commit: `8d41bb559a5e85cd8d1ed329c6599529e8fdfe4f`
+- PR: [#13](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/pull/13)
+- PR CI: [#34395114124](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34395114124) — **success**
+- final merged-main CI: [#34395404807](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34395404807) — **success**
+
+The control replay and fault-injection fixtures now use isolated ROS namespaces,
+while Nav2 launch fixtures are serialized inside `amr_bringup`.
+
+## v0.4 evidence scope
+
+This is software/system-integration evidence for checked-in deterministic fixtures.
+It does not establish physical safety certification, hard real-time guarantees,
+physical localization accuracy, or real-robot repeatability.

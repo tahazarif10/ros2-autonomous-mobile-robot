@@ -88,7 +88,9 @@ The repository already tests:
 - TF-chain availability
 - navigator lifecycle readiness before goal submission
 
-v0.4 extends this with rosbag replay, missing-TF injection, diagnostics, and timing/observability.
+v0.4 additionally verifies rosbag2 replay repeatability, diagnostics with stable
+stop reasons, NaN/stale-input fault injection, missing-global-TF fail-closed
+behavior, replay/controller metrics, and ROS test-graph isolation.
 
 ## Verification strategy
 
@@ -98,8 +100,9 @@ Verification is layered:
 2. adapter unit tests for type conversion and parameter validation
 3. ROS 2 launch/integration tests
 4. deterministic Nav2 loopback fixture
-5. rosbag replay regression
-6. CI build/test gates
-7. hardware validation only after simulation behavior is reproducible
+5. real rosbag2 sqlite3 replay regression
+6. missing-TF and invalid/stale-input fault injection
+7. CI build/test gates with test-graph isolation
+8. hardware validation only after simulation behavior is reproducible
 
 Metrics are fixture-scoped and must not be presented as physical-hardware performance without separate hardware evidence.
