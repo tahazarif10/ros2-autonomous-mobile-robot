@@ -27,6 +27,7 @@ def generate_test_description():
         package="amr_control_adapter",
         executable="amr_control_adapter_node",
         name="amr_control_adapter",
+        namespace="replay",
         output="screen",
         parameters=[
             {
@@ -57,10 +58,13 @@ class TestRosbagReplayRegression(unittest.TestCase):
         rclpy.shutdown()
 
     def setUp(self):
-        self.node = rclpy.create_node("rosbag_replay_regression")
+        self.node = rclpy.create_node(
+            "rosbag_replay_regression",
+            namespace="/replay",
+        )
         self.change_state = self.node.create_client(
             ChangeState,
-            "/amr_control_adapter/change_state",
+            "/replay/amr_control_adapter/change_state",
         )
 
         path_qos = QoSProfile(
@@ -70,7 +74,7 @@ class TestRosbagReplayRegression(unittest.TestCase):
         )
         self.path_pub = self.node.create_publisher(
             PathMessage,
-            "/plan",
+            "plan",
             path_qos,
         )
         odom_qos = QoSProfile(
@@ -80,19 +84,19 @@ class TestRosbagReplayRegression(unittest.TestCase):
         )
         self.odom_pub = self.node.create_publisher(
             Odometry,
-            "/odom",
+            "odom",
             odom_qos,
         )
 
         self.cmd_sub = self.node.create_subscription(
             Twist,
-            "/cmd_vel",
+            "cmd_vel",
             self._on_cmd,
             10,
         )
         self.diag_sub = self.node.create_subscription(
             DiagnosticArray,
-            "/diagnostics",
+            "diagnostics",
             self._on_diag,
             10,
         )
