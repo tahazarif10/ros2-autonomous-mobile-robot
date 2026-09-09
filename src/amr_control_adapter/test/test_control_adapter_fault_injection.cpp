@@ -40,8 +40,13 @@ protected:
 
     void SetUp() override
     {
-        adapter_ = std::make_shared<amr_control_adapter::ControlAdapterNode>();
-        helper_ = std::make_shared<rclcpp::Node>("control_adapter_fault_test");
+        rclcpp::NodeOptions isolated_options;
+        isolated_options.arguments({"--ros-args", "-r", "__ns:=/fault_test"});
+
+        adapter_ =
+            std::make_shared<amr_control_adapter::ControlAdapterNode>(isolated_options);
+        helper_ =
+            std::make_shared<rclcpp::Node>("control_adapter_fault_test", isolated_options);
 
         ASSERT_TRUE(
             adapter_->set_parameter(

@@ -25,6 +25,16 @@ if(BUILD_TESTING)
     test/test_missing_tf_fail_closed.py
     TIMEOUT 60
   )
+
+  # These fixtures intentionally use the global Nav2 topic/frame contract.
+  # Keep them serial inside this package; control-adapter tests are separately
+  # namespaced so package-level parallelism cannot contaminate odometry/cmd_vel.
+  set_tests_properties(
+    test_test_display_launch.py
+    test_test_navigation_fixture.py
+    test_test_missing_tf_fail_closed.py
+    PROPERTIES RUN_SERIAL TRUE
+  )
 endif()
 
 ament_package()
