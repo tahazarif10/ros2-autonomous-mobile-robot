@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+    container:
+      image: ros:jazzy-ros-base-noble
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install workspace tooling
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends             python3-colcon-common-extensions             python3-rosdep
+          rm -rf /var/lib/apt/lists/*
+
+      - name: Install dependencies
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          rosdep update
+          rosdep install --from-paths src --ignore-src -r -y
+
+      - name: Build
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          colcon build --event-handlers console_direct+
+
+      - name: Test
+        shell: bash
+        run: |
+          source /opt/ros/jazzy/setup.bash
+          source install/setup.bash
+          colcon test --event-handlers console_direct+
+          colcon test-result --verbose
