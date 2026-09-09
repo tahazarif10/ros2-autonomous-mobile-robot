@@ -1,5 +1,6 @@
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
 from launch.substitutions import Command, LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
@@ -9,6 +10,7 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     params_file = LaunchConfiguration("params_file")
     map_file = LaunchConfiguration("map")
+    start_loopback = LaunchConfiguration("start_loopback")
 
     model = PathJoinSubstitution(
         [FindPackageShare("amr_description"), "urdf", "amr.urdf.xacro"]
@@ -44,6 +46,11 @@ def generate_launch_description():
                 default_value=default_map,
                 description="Static map YAML file.",
             ),
+            DeclareLaunchArgument(
+                "start_loopback",
+                default_value="true",
+                description="Start deterministic loopback localization/odometry.",
+            ),
             Node(
                 package="robot_state_publisher",
                 executable="robot_state_publisher",
@@ -74,6 +81,7 @@ def generate_launch_description():
                 name="loopback_simulator",
                 output="screen",
                 parameters=[params_file],
+                condition=IfCondition(start_loopback),
             ),
             Node(
                 package="nav2_controller",

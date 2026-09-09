@@ -57,3 +57,36 @@ the run, so generated binary artifacts are not committed to the repository.
 This verifies deterministic control-boundary replay for the checked-in fixture.
 It does not establish real-time determinism, physical robot repeatability, or
 sensor/localization performance.
+
+
+## Captured metrics
+
+Each replay captures and verifies:
+
+- bag message count
+- source bag timestamp span
+- paced replay wall duration within a deliberately broad CI-safe bound
+- maximum absolute linear command
+- command sample count
+- diagnostic sample count
+
+For the checked-in source fixture, the bag contains **8 messages** spanning
+**1.2 s** of recorded time and is replayed at **2.0×** pacing. The test does
+not require exact wall-clock equality between CI runs; it verifies the recorded
+timing contract and bounded runtime behavior instead.
+
+## Missing-TF fail-closed regression
+
+The navigation fixture can be launched with:
+
+`start_loopback:=false`
+
+This intentionally removes the provider of `map -> odom` and
+`odom -> base_link`. The system test verifies that:
+
+- `map -> base_link` remains unavailable
+- `bt_navigator` never reaches ACTIVE state during the observation window
+- no non-zero `cmd_vel` is published
+
+This is a software fail-closed check for a missing localization/odometry TF
+contract. It is not a physical safety certification.

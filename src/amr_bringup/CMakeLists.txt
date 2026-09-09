@@ -20,6 +20,11 @@ if(BUILD_TESTING)
     test/test_navigation_fixture.py
     TIMEOUT 180
   )
+
+  add_launch_test(
+    test/test_missing_tf_fail_closed.py
+    TIMEOUT 60
+  )
 endif()
 
 ament_package()
