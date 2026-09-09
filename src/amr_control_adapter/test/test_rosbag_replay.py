@@ -100,6 +100,8 @@ class TestRosbagReplayRegression(unittest.TestCase):
         self.max_linear = 0.0
         self.latest_command = Twist()
         self.reasons = []
+        self.command_samples = 0
+        self.diagnostic_samples = 0
 
         fixture_path = Path(__file__).parent / "fixtures" / "control_replay.json"
         with fixture_path.open("r", encoding="utf-8") as stream:
@@ -143,10 +145,12 @@ class TestRosbagReplayRegression(unittest.TestCase):
     def _on_cmd(self, message):
         self.latest_command = message
         self.max_linear = max(self.max_linear, abs(message.linear.x))
+        self.command_samples += 1
 
     def _on_diag(self, message):
         if message.status:
             self.reasons.append(message.status[0].message)
+            self.diagnostic_samples += 1
 
     def _transition(self, transition_id, required=True):
         request = ChangeState.Request()
@@ -250,6 +254,8 @@ class TestRosbagReplayRegression(unittest.TestCase):
         self.max_linear = 0.0
         self.latest_command = Twist()
         self.reasons = []
+        self.command_samples = 0
+        self.diagnostic_samples = 0
 
     def _replay_once(self):
         self._reset_observations()
@@ -263,11 +269,18 @@ class TestRosbagReplayRegression(unittest.TestCase):
             rosbag2_py.ConverterOptions("", ""),
         )
 
+        first_timestamp = None
         last_timestamp = None
+        message_count = 0
         speed = float(self.fixture["replay_speed"])
+        replay_started = time.monotonic()
 
         while reader.has_next():
             topic, data, timestamp = reader.read_next()
+
+            if first_timestamp is None:
+                first_timestamp = timestamp
+            message_count += 1
 
             if last_timestamp is not None:
                 delta_s = (timestamp - last_timestamp) / 1_000_000_000.0
@@ -283,6 +296,7 @@ class TestRosbagReplayRegression(unittest.TestCase):
 
             self._spin_for(0.03)
 
+        replay_elapsed_s = time.monotonic() - replay_started
         del reader
 
         self.assertTrue(
@@ -295,20 +309,61 @@ class TestRosbagReplayRegression(unittest.TestCase):
             and math.isclose(self.latest_command.angular.z, 0.0, abs_tol=1.0e-9)
         )
 
+        bag_span_s = (last_timestamp - first_timestamp) / 1_000_000_000.0
+
         return {
-            "saw_motion": self.max_linear > 0.01,
-            "saw_normal": "none" in self.reasons,
-            "saw_goal": "goal_reached" in self.reasons,
-            "final_zero": final_zero,
+            "outcome": {
+                "saw_motion": self.max_linear > 0.01,
+                "saw_normal": "none" in self.reasons,
+                "saw_goal": "goal_reached" in self.reasons,
+                "final_zero": final_zero,
+            },
+            "metrics": {
+                "bag_message_count": message_count,
+                "bag_span_s": bag_span_s,
+                "replay_elapsed_s": replay_elapsed_s,
+                "max_linear_mps": self.max_linear,
+                "command_samples": self.command_samples,
+                "diagnostic_samples": self.diagnostic_samples,
+            },
         }
+
+    def _assert_metrics(self, replay_result):
+        metrics = replay_result["metrics"]
+        expected_span_s = (
+            self.fixture["events"][-1]["time_ns"]
+            - self.fixture["events"][0]["time_ns"]
+        ) / 1_000_000_000.0
+        nominal_paced_s = expected_span_s / float(self.fixture["replay_speed"])
+
+        self.assertEqual(
+            metrics["bag_message_count"],
+            len(self.fixture["events"]),
+        )
+        self.assertAlmostEqual(metrics["bag_span_s"], expected_span_s, places=9)
+        self.assertGreaterEqual(
+            metrics["replay_elapsed_s"],
+            nominal_paced_s * 0.8,
+        )
+        self.assertLess(
+            metrics["replay_elapsed_s"],
+            nominal_paced_s + 2.0,
+        )
+        self.assertGreater(metrics["max_linear_mps"], 0.01)
+        self.assertLessEqual(metrics["max_linear_mps"], 0.85 + 1.0e-9)
+        self.assertGreater(metrics["command_samples"], 5)
+        self.assertGreater(metrics["diagnostic_samples"], 5)
 
     def test_same_rosbag_replays_to_same_control_outcome(self, adapter):
         first = self._replay_once()
         second = self._replay_once()
 
-        self.assertTrue(first["saw_motion"])
-        self.assertTrue(first["saw_normal"])
-        self.assertTrue(first["saw_goal"])
-        self.assertTrue(first["final_zero"])
-        self.assertEqual(first, second)
+        for result in (first, second):
+            self.assertTrue(result["outcome"]["saw_motion"])
+            self.assertTrue(result["outcome"]["saw_normal"])
+            self.assertTrue(result["outcome"]["saw_goal"])
+            self.assertTrue(result["outcome"]["final_zero"])
+            self._assert_metrics(result)
+
+        self.assertEqual(first["outcome"], second["outcome"])
 
