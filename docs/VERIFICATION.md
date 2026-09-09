@@ -98,3 +98,29 @@ The v0.3 fixture verifies:
 ## v0.3 evidence scope
 
 This is deterministic software/system-integration evidence for the exact checked-in loopback fixture. It is not evidence of physical dynamics, localization accuracy under sensor noise, real-world collision avoidance, or hardware performance.
+
+
+## v0.4 slice 1 — Control observability and fault injection
+
+Status: **slice complete; v0.4 milestone remains open**
+
+Verified implementation:
+
+- merge commit: `65824d8047e241482b830fc11e55707a77b4a6f1`
+- pull request: [#10 — feat: add control diagnostics and fault injection](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/pull/10)
+- PR hosted CI run: [#34388062539](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34388062539)
+- merged-main CI run: [#34388363553](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34388363553)
+- hosted result: **success**
+
+The hosted integration test verifies the real lifecycle node through ROS 2 topics:
+
+- valid path + odometry produces bounded motion and `stop_reason=none`
+- injected NaN odometry produces a zero command and `stop_reason=invalid_input`
+- stale odometry produces a zero command and `stop_reason=stale_odometry`
+- stale path while odometry remains fresh produces a zero command and `stop_reason=stale_path`
+- diagnostics expose motion state, stable stop reason, control sequence, odometry age, and path age
+- missing path and missing odometry have distinct diagnostic reasons
+
+## v0.4 slice 1 evidence scope
+
+This verifies software-level failure handling and observability at the lifecycle control boundary. The full v0.4 milestone remains open until rosbag replay, replay repeatability, missing-TF navigation injection, and replay/timing evidence are implemented.

@@ -37,10 +37,11 @@ The roadmap is evidence-driven. A milestone is complete only when its implementa
 ## v0.4 — Replay and observability
 
 - [ ] rosbag replay fixture
-- [ ] deterministic regression runner
-- [ ] diagnostics
-- [ ] timing and controller metrics
-- [ ] failure injection for stale/missing inputs
+- [ ] deterministic replay regression runner
+- [x] lifecycle control diagnostics with stable stop reasons
+- [ ] replay timing and controller metrics
+- [x] stale odometry/path and non-finite input fault injection
+- [ ] missing-TF navigation fault injection
 
 ## v0.5 — Simulation qualification
 
