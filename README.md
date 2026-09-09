@@ -43,11 +43,12 @@ library at a pinned commit rather than duplicating planner/controller math insid
 .
 ├── src/
 │   ├── amr_description/      # Robot model and geometry
-│   ├── amr_bringup/          # Launch and system composition
+│   ├── amr_bringup/          # Launch, Nav2 fixture, maps, system composition
 │   └── amr_control_adapter/  # Lifecycle ROS 2 boundary around control core
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── CONTROL_ADAPTER.md
+│   ├── NAV2_FIXTURE.md
 │   ├── VERIFICATION.md
 │   └── ROADMAP.md
 └── .github/workflows/
@@ -56,11 +57,25 @@ library at a pinned commit rather than duplicating planner/controller math insid
 
 ## Current status
 
-**v0.2 control-core adapter — complete**
+**v0.3 Nav2 integration — complete**
 
-The repository now has a reproducible ROS 2 baseline plus a C++ lifecycle adapter that consumes the standalone `robotics-control-core` library at a pinned commit. The adapter converts Path/Odometry inputs, publishes bounded `cmd_vel`, and enforces safe-stop behavior for stale, missing, or non-finite data. Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+The repository includes the v0.2 lifecycle control-core adapter plus a deterministic Nav2 system fixture built on Nav2's loopback simulator.
 
-No hardware-performance claims are made by this repository. Simulation and regression results will be reported only for the exact checked-in fixtures and configurations used to produce them.
+The checked-in v0.3 scenario uses:
+
+- a 6 m × 6 m static map
+- start pose `(-2.0, 0.0)`
+- goal pose `(2.0, 0.0)`
+- a central obstacle that blocks the direct path
+- NavFn with A* enabled
+- Regulated Pure Pursuit
+- explicit `map -> odom -> base_link -> base_scan` TF ownership
+- documented QoS assumptions
+- launch-level assertions for goal success, obstacle clearance, final position tolerance, and a non-trivial detour
+
+Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md), and the fixture contract is documented in [`docs/NAV2_FIXTURE.md`](docs/NAV2_FIXTURE.md).
+
+No hardware-performance claims are made by this repository. Simulation and regression results are scoped only to the exact checked-in fixtures and configurations used to produce them.
 
 ## Build
 
@@ -79,6 +94,14 @@ Display the robot model:
 ros2 launch amr_bringup display.launch.py
 ```
 
+Run the deterministic Nav2 fixture manually:
+
+```bash
+ros2 launch amr_bringup navigation_loopback.launch.py
+```
+
+The end-to-end fixture assertion runs through `colcon test` in CI.
+
 ## Engineering goals
 
 - clean TF tree and explicit frame ownership
@@ -91,7 +114,7 @@ ros2 launch amr_bringup display.launch.py
 - simulation before hardware claims
 - CI evidence for every merge
 
-See [Architecture](docs/ARCHITECTURE.md), [Control adapter contract](docs/CONTROL_ADAPTER.md), [Verification](docs/VERIFICATION.md), and [Roadmap](docs/ROADMAP.md).
+See [Architecture](docs/ARCHITECTURE.md), [Control adapter contract](docs/CONTROL_ADAPTER.md), [Nav2 fixture](docs/NAV2_FIXTURE.md), [Verification](docs/VERIFICATION.md), and [Roadmap](docs/ROADMAP.md).
 
 ## License
 

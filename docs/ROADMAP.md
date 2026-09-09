@@ -26,12 +26,13 @@ The roadmap is evidence-driven. A milestone is complete only when its implementa
 
 ## v0.3 — Navigation integration
 
-- [ ] Nav2 bringup
-- [ ] explicit QoS contracts
-- [ ] TF ownership validation
-- [ ] map and localization configuration
-- [ ] deterministic navigation scenario
-- [ ] collision/goal assertions
+- [x] Nav2 bringup
+- [x] explicit QoS contracts
+- [x] TF ownership validation
+- [x] map and localization configuration
+- [x] deterministic navigation scenario
+- [x] collision/goal assertions
+- [x] merged-main CI evidence recorded
 
 ## v0.4 — Replay and observability
 

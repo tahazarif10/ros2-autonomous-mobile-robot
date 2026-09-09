@@ -33,10 +33,9 @@ The hosted CI run completed successfully on the merged `main` commit and covered
 - runtime discovery of `/joint_state_publisher`
 - `colcon test-result --verbose`
 
-## Scope of evidence
+## v0.1 evidence scope
 
-This evidence verifies the checked-in ROS 2 baseline and automated tests only. It is not a hardware-performance claim and does not yet demonstrate autonomous navigation, localization, or physical-robot operation.
-
+This evidence verifies the checked-in ROS 2 baseline and automated tests only. It is not a hardware-performance claim.
 
 ## v0.2 — Lifecycle control-core adapter
 
@@ -64,6 +63,38 @@ The hosted CI run verified:
 
 ## v0.2 evidence scope
 
-This verifies the checked-in software contract and hosted tests. It does not yet claim
-Nav2 integration, localization performance, simulator navigation performance, or
-physical-robot behavior.
+This verifies the checked-in software contract and hosted tests. It does not claim physical-robot behavior.
+
+## v0.3 — Deterministic Nav2 integration
+
+Status: **complete**
+
+Verified implementation:
+
+- primary merge commit: `62fede538f84671355ef330d04c6aea1fdd2e629`
+- primary pull request: [#8 — feat: add deterministic Nav2 loopback fixture](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/pull/8)
+- primary merged-main CI run: [#34384788427](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34384788427)
+- TF/QoS verification merge commit: `2e3f673b4556495ea5ad3824252c6f0f94e1b92e`
+- TF/QoS pull request: [#9 — test: verify v0.3 TF and QoS contract](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/pull/9)
+- PR #9 hosted CI run: [#34385774324](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34385774324)
+- final merged-main CI run: [#34386081006](https://github.com/tahazarif10/ros2-autonomous-mobile-robot/actions/runs/34386081006)
+- hosted result: **success**
+
+The v0.3 fixture verifies:
+
+- repository-owned Nav2 launch and configuration
+- static-map loading from the checked-in 6 m × 6 m fixture
+- NavFn global planning with A* enabled
+- Regulated Pure Pursuit control
+- loopback-provided deterministic localization/odometry
+- runtime availability of `map <- odom <- base_link <- base_scan`
+- documented and compatible QoS assumptions for initial pose, odometry, velocity commands, static map, and loopback scan
+- lifecycle activation of `bt_navigator` before a navigation goal is sent
+- successful `NavigateToPose` completion
+- collision clearance against the checked-in central obstacle expanded by robot radius
+- final position error within 0.20 m for the fixture
+- non-trivial detour around an obstacle that blocks the direct start-to-goal path
+
+## v0.3 evidence scope
+
+This is deterministic software/system-integration evidence for the exact checked-in loopback fixture. It is not evidence of physical dynamics, localization accuracy under sensor noise, real-world collision avoidance, or hardware performance.
