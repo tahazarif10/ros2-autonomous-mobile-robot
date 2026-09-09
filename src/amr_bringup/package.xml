@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package format="3">
   <name>amr_bringup</name>
-  <version>0.1.0</version>
+  <version>0.3.0</version>
   <description>Launch and composition package for the ROS 2 autonomous mobile robot project.</description>
   <maintainer email="tahazarif10@users.noreply.github.com">Taha Zarif</maintainer>
   <license>Apache-2.0</license>
@@ -14,7 +14,22 @@
   <exec_depend>rviz2</exec_depend>
   <exec_depend>xacro</exec_depend>
 
+  <exec_depend>nav2_behaviors</exec_depend>
+  <exec_depend>nav2_bt_navigator</exec_depend>
+  <exec_depend>nav2_controller</exec_depend>
+  <exec_depend>nav2_lifecycle_manager</exec_depend>
+  <exec_depend>nav2_loopback_sim</exec_depend>
+  <exec_depend>nav2_map_server</exec_depend>
+  <exec_depend>nav2_navfn_planner</exec_depend>
+  <exec_depend>nav2_planner</exec_depend>
+  <exec_depend>nav2_regulated_pure_pursuit_controller</exec_depend>
+
+  <test_depend>action_msgs</test_depend>
+  <test_depend>geometry_msgs</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
+  <test_depend>nav2_msgs</test_depend>
+  <test_depend>nav_msgs</test_depend>
+  <test_depend>rclpy</test_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
