@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "replay_speed": 2,
+  "path": [
+    [
+      0,
+      0
+    ],
+    [
+      0.5,
+      0
+    ],
+    [
+      1,
+      0
+    ],
+    [
+      1.5,
+      0
+    ],
+    [
+      2,
+      0
+    ]
+  ],
+  "events": [
+    {
+      "topic": "/plan",
+      "time_ns": 0
+    },
+    {
+      "topic": "/odom",
+      "time_ns": 0,
+      "x": 0
+    },
+    {
+      "topic": "/odom",
+      "time_ns": 200000000,
+      "x": 0.3
+    },
+    {
+      "topic": "/odom",
+      "time_ns": 400000000,
+      "x": 0.65
+    },
+    {
+      "topic": "/odom",
+      "time_ns": 600000000,
+      "x": 1
+    },
+    {
+      "topic": "/odom",
+      "time_ns": 800000000,
+      "x": 1.35
+    },
+    {
+      "topic": "/odom",
+      "time_ns": 1000000000,
+      "x": 1.7
+    },
+    {
+      "topic": "/odom",
+      "time_ns": 1200000000,
+      "x": 2
+    }
+  ]
+}

@@ -62,6 +62,7 @@ install(
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+  find_package(launch_testing_ament_cmake REQUIRED)
 
   ament_add_gtest(control_policy_test test/test_control_policy.cpp)
   target_compile_features(control_policy_test PUBLIC cxx_std_20)
@@ -91,6 +92,11 @@ if(BUILD_TESTING)
     nav_msgs
     rclcpp
     rclcpp_lifecycle
+  )
+
+  add_launch_test(
+    test/test_rosbag_replay.py
+    TIMEOUT 120
   )
 endif()
 
