@@ -10,9 +10,9 @@ The roadmap is evidence-driven. A milestone is complete only when its implementa
 - [x] differential-drive Xacro description
 - [x] display launch
 - [x] GitHub Actions build/test workflow
-- [ ] description validation test
-- [ ] launch smoke test
-- [ ] CI evidence recorded in README/docs
+- [x] description validation test
+- [x] launch smoke test
+- [x] CI evidence recorded in README/docs
 
 ## v0.2 — Control-core adapter
 

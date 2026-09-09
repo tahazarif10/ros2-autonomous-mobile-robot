@@ -53,9 +53,9 @@ library rather than duplicating planner/controller math inside ROS 2 nodes.
 
 ## Current status
 
-**Bootstrap / v0.1 in progress**
+**v0.1 reproducible ROS 2 baseline — complete**
 
-The first slice establishes a reproducible ROS 2 workspace, a differential-drive robot description, launch structure, CI, and a clear contract for the later control/Nav2 integration.
+The v0.1 slice establishes a reproducible ROS 2 workspace, a differential-drive robot description, headless launch verification, CI, and a clear contract for later control/Nav2 integration. Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
 No hardware-performance claims are made by this repository. Simulation and regression results will be reported only for the exact checked-in fixtures and configurations used to produce them.
 
@@ -88,7 +88,7 @@ ros2 launch amr_bringup display.launch.py
 - simulation before hardware claims
 - CI evidence for every merge
 
-See [Architecture](docs/ARCHITECTURE.md) and [Roadmap](docs/ROADMAP.md).
+See [Architecture](docs/ARCHITECTURE.md), [Verification](docs/VERIFICATION.md), and [Roadmap](docs/ROADMAP.md).
 
 ## License
 
