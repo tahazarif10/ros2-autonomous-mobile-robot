@@ -2,6 +2,7 @@
 
 #include "amr_control_adapter/control_policy.hpp"
 
+#include <diagnostic_msgs/msg/diagnostic_array.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
@@ -10,6 +11,7 @@
 #include <rclcpp_lifecycle/lifecycle_publisher.hpp>
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -38,6 +40,11 @@ private:
     void on_control_tick();
 
     void publish_stop();
+    void publish_diagnostics(
+        StopReason reason,
+        bool motion_enabled,
+        std::optional<double> odometry_age_s,
+        std::optional<double> path_age_s);
     void clear_runtime_state();
 
     static robotics_control::Pose2D pose_from_odometry(
@@ -58,10 +65,14 @@ private:
 
     rclcpp::Subscription<nav_msgs::msg::Path>::SharedPtr path_subscription_;
     rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odometry_subscription_;
-    rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::Twist>::SharedPtr command_publisher_;
+    rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::Twist>::SharedPtr
+        command_publisher_;
+    rclcpp_lifecycle::LifecyclePublisher<diagnostic_msgs::msg::DiagnosticArray>::SharedPtr
+        diagnostics_publisher_;
     rclcpp::TimerBase::SharedPtr control_timer_;
 
     double control_rate_hz_{20.0};
+    std::uint64_t control_sequence_{0};
 };
 
 }  // namespace amr_control_adapter
