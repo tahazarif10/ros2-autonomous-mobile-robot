@@ -11,6 +11,7 @@ namespace amr_control_adapter {
 enum class StopReason {
     none,
     missing_path,
+    missing_odometry,
     stale_path,
     stale_odometry,
     invalid_input,

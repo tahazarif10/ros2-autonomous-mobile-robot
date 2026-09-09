@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 project(amr_control_adapter)
 
 find_package(ament_cmake REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
@@ -34,6 +35,7 @@ target_include_directories(amr_control_adapter_lib
 )
 ament_target_dependencies(
   amr_control_adapter_lib
+  diagnostic_msgs
   geometry_msgs
   nav_msgs
   lifecycle_msgs
@@ -60,6 +62,7 @@ install(
 
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
+
   ament_add_gtest(control_policy_test test/test_control_policy.cpp)
   target_compile_features(control_policy_test PUBLIC cxx_std_20)
   target_link_libraries(control_policy_test amr_control_adapter_lib)
@@ -70,6 +73,22 @@ if(BUILD_TESTING)
   ament_target_dependencies(
     control_adapter_lifecycle_test
     lifecycle_msgs
+    rclcpp
+    rclcpp_lifecycle
+  )
+
+  ament_add_gtest(
+    control_adapter_fault_injection_test
+    test/test_control_adapter_fault_injection.cpp
+  )
+  target_compile_features(control_adapter_fault_injection_test PUBLIC cxx_std_20)
+  target_link_libraries(control_adapter_fault_injection_test amr_control_adapter_lib)
+  ament_target_dependencies(
+    control_adapter_fault_injection_test
+    diagnostic_msgs
+    geometry_msgs
+    lifecycle_msgs
+    nav_msgs
     rclcpp
     rclcpp_lifecycle
   )

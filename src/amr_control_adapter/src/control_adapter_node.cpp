@@ -1,13 +1,47 @@
 #include "amr_control_adapter/control_adapter_node.hpp"
 
+#include <diagnostic_msgs/msg/diagnostic_status.hpp>
+#include <diagnostic_msgs/msg/key_value.hpp>
 #include <lifecycle_msgs/msg/state.hpp>
 
 #include <cmath>
 #include <functional>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace amr_control_adapter {
+namespace {
+
+std::uint8_t diagnostic_level(StopReason reason) noexcept
+{
+    using diagnostic_msgs::msg::DiagnosticStatus;
+
+    switch (reason) {
+    case StopReason::none:
+    case StopReason::goal_reached:
+        return DiagnosticStatus::OK;
+    case StopReason::invalid_input:
+        return DiagnosticStatus::ERROR;
+    case StopReason::missing_path:
+    case StopReason::missing_odometry:
+    case StopReason::stale_path:
+    case StopReason::stale_odometry:
+        return DiagnosticStatus::WARN;
+    }
+
+    return DiagnosticStatus::ERROR;
+}
+
+diagnostic_msgs::msg::KeyValue key_value(std::string key, std::string value)
+{
+    diagnostic_msgs::msg::KeyValue item;
+    item.key = std::move(key);
+    item.value = std::move(value);
+    return item;
+}
+
+}  // namespace
 
 ControlAdapterNode::ControlAdapterNode(const rclcpp::NodeOptions& options)
     : rclcpp_lifecycle::LifecycleNode("amr_control_adapter", options)
@@ -48,6 +82,8 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_configure(
     policy_ = std::make_unique<ControlPolicy>(config);
 
     command_publisher_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    diagnostics_publisher_ =
+        create_publisher<diagnostic_msgs::msg::DiagnosticArray>("diagnostics", 10);
 
     path_subscription_ = create_subscription<nav_msgs::msg::Path>(
         "plan",
@@ -68,12 +104,13 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_configure(
 ControlAdapterNode::CallbackReturn ControlAdapterNode::on_activate(
     const rclcpp_lifecycle::State&)
 {
-    if (!command_publisher_ || !policy_) {
+    if (!command_publisher_ || !diagnostics_publisher_ || !policy_) {
         RCLCPP_ERROR(get_logger(), "Cannot activate before configuration");
         return CallbackReturn::FAILURE;
     }
 
     command_publisher_->on_activate();
+    diagnostics_publisher_->on_activate();
 
     const auto period = std::chrono::duration<double>(1.0 / control_rate_hz_);
     control_timer_ = create_wall_timer(
@@ -97,6 +134,9 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_deactivate(
     if (command_publisher_) {
         command_publisher_->on_deactivate();
     }
+    if (diagnostics_publisher_) {
+        diagnostics_publisher_->on_deactivate();
+    }
 
     if (policy_) {
         policy_->reset();
@@ -119,6 +159,7 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_cleanup(
     path_subscription_.reset();
     odometry_subscription_.reset();
     command_publisher_.reset();
+    diagnostics_publisher_.reset();
 
     RCLCPP_INFO(get_logger(), "Cleaned up control adapter");
     return CallbackReturn::SUCCESS;
@@ -176,18 +217,42 @@ void ControlAdapterNode::on_control_tick()
         path_received_at = path_received_at_;
     }
 
-    if (!policy_ || !pose || !odometry_received_at || !path_received_at) {
+    const auto steady_now = SteadyClock::now();
+    std::optional<double> odometry_age_s;
+    std::optional<double> path_age_s;
+
+    if (odometry_received_at) {
+        odometry_age_s =
+            std::chrono::duration<double>(steady_now - *odometry_received_at).count();
+    }
+    if (path_received_at) {
+        path_age_s =
+            std::chrono::duration<double>(steady_now - *path_received_at).count();
+    }
+
+    if (!policy_) {
         publish_stop();
+        publish_diagnostics(
+            StopReason::invalid_input, false, odometry_age_s, path_age_s);
         return;
     }
 
-    const auto now = SteadyClock::now();
-    const auto odometry_age =
-        std::chrono::duration<double>(now - *odometry_received_at).count();
-    const auto path_age =
-        std::chrono::duration<double>(now - *path_received_at).count();
+    if (!pose || !odometry_received_at) {
+        publish_stop();
+        publish_diagnostics(
+            StopReason::missing_odometry, false, odometry_age_s, path_age_s);
+        return;
+    }
 
-    const auto decision = policy_->evaluate(*pose, path, odometry_age, path_age);
+    if (!path_received_at) {
+        publish_stop();
+        publish_diagnostics(
+            StopReason::missing_path, false, odometry_age_s, path_age_s);
+        return;
+    }
+
+    const auto decision =
+        policy_->evaluate(*pose, path, *odometry_age_s, *path_age_s);
 
     geometry_msgs::msg::Twist command;
     command.linear.x = decision.twist.linear_mps;
@@ -196,6 +261,12 @@ void ControlAdapterNode::on_control_tick()
     if (command_publisher_ && command_publisher_->is_activated()) {
         command_publisher_->publish(command);
     }
+
+    publish_diagnostics(
+        decision.stop_reason,
+        decision.motion_enabled,
+        odometry_age_s,
+        path_age_s);
 }
 
 void ControlAdapterNode::publish_stop()
@@ -207,6 +278,43 @@ void ControlAdapterNode::publish_stop()
     command_publisher_->publish(geometry_msgs::msg::Twist{});
 }
 
+void ControlAdapterNode::publish_diagnostics(
+    StopReason reason,
+    bool motion_enabled,
+    std::optional<double> odometry_age_s,
+    std::optional<double> path_age_s)
+{
+    if (!diagnostics_publisher_ || !diagnostics_publisher_->is_activated()) {
+        return;
+    }
+
+    diagnostic_msgs::msg::DiagnosticArray message;
+    message.header.stamp = now();
+
+    diagnostic_msgs::msg::DiagnosticStatus status;
+    status.level = diagnostic_level(reason);
+    status.name = std::string(get_fully_qualified_name()) + "/control";
+    status.hardware_id = "software";
+    status.message = std::string(to_string(reason));
+    status.values.push_back(
+        key_value("motion_enabled", motion_enabled ? "true" : "false"));
+    status.values.push_back(
+        key_value("stop_reason", std::string(to_string(reason))));
+    status.values.push_back(
+        key_value("control_sequence", std::to_string(control_sequence_++)));
+    status.values.push_back(
+        key_value(
+            "odometry_age_s",
+            odometry_age_s ? std::to_string(*odometry_age_s) : "unavailable"));
+    status.values.push_back(
+        key_value(
+            "path_age_s",
+            path_age_s ? std::to_string(*path_age_s) : "unavailable"));
+
+    message.status.push_back(std::move(status));
+    diagnostics_publisher_->publish(message);
+}
+
 void ControlAdapterNode::clear_runtime_state()
 {
     std::scoped_lock lock(mutex_);
@@ -214,6 +322,7 @@ void ControlAdapterNode::clear_runtime_state()
     path_.clear();
     odometry_received_at_.reset();
     path_received_at_.reset();
+    control_sequence_ = 0;
 }
 
 robotics_control::Pose2D ControlAdapterNode::pose_from_odometry(
