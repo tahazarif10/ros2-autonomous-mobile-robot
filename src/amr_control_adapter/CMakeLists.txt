@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 project(amr_control_adapter)
 
 find_package(ament_cmake REQUIRED)
+find_package(diagnostic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
@@ -34,6 +35,7 @@ target_include_directories(amr_control_adapter_lib
 )
 ament_target_dependencies(
   amr_control_adapter_lib
+  diagnostic_msgs
   geometry_msgs
   nav_msgs
   lifecycle_msgs

@@ -119,6 +119,8 @@ std::string_view to_string(StopReason reason) noexcept
     switch (reason) {
     case StopReason::none:
         return "none";
+    case StopReason::missing_odometry:
+        return "missing_odometry";
     case StopReason::missing_path:
         return "missing_path";
     case StopReason::stale_path:

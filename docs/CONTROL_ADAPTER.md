@@ -39,6 +39,21 @@ Commands are clamped to the configured linear and angular limits even though the
 underlying controller already has limits. The adapter boundary therefore does not
 trust upstream output implicitly.
 
+### `diagnostics` — `diagnostic_msgs/msg/DiagnosticArray`
+
+While the lifecycle node is active, the adapter publishes a compact diagnostic status
+for each control tick. The status reports the control-policy stop reason,
+`motion_enabled`, and input ages when available.
+
+Diagnostic stop reasons include:
+
+- `missing_odometry`
+- `missing_path`
+- `stale_odometry`
+- `stale_path`
+- `invalid_input`
+- `goal_reached`
+
 ## Safe-stop contract
 
 The output command is zero when any of these conditions is true:
@@ -70,9 +85,9 @@ publisher.
 
 The package implements a ROS 2 lifecycle node:
 
-- configure: validate parameters and create subscriptions/publisher
-- activate: activate `cmd_vel` and start the control timer
-- deactivate: stop timer, publish zero, deactivate publisher
+- configure: validate parameters and create subscriptions/publishers
+- activate: activate `cmd_vel` + diagnostics and start the control timer
+- deactivate: stop timer, publish zero, deactivate lifecycle publishers
 - cleanup: clear runtime state and release ROS interfaces
 - shutdown: stop timer and clear runtime state
 

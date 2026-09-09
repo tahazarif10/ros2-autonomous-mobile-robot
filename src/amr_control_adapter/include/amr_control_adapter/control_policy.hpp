@@ -10,6 +10,7 @@ namespace amr_control_adapter {
 
 enum class StopReason {
     none,
+    missing_odometry,
     missing_path,
     stale_path,
     stale_odometry,

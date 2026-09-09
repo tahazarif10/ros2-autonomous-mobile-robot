@@ -48,6 +48,8 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_configure(
     policy_ = std::make_unique<ControlPolicy>(config);
 
     command_publisher_ = create_publisher<geometry_msgs::msg::Twist>("cmd_vel", 10);
+    diagnostics_publisher_ =
+        create_publisher<diagnostic_msgs::msg::DiagnosticArray>("diagnostics", 10);
 
     path_subscription_ = create_subscription<nav_msgs::msg::Path>(
         "plan",
@@ -68,12 +70,13 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_configure(
 ControlAdapterNode::CallbackReturn ControlAdapterNode::on_activate(
     const rclcpp_lifecycle::State&)
 {
-    if (!command_publisher_ || !policy_) {
+    if (!command_publisher_ || !diagnostics_publisher_ || !policy_) {
         RCLCPP_ERROR(get_logger(), "Cannot activate before configuration");
         return CallbackReturn::FAILURE;
     }
 
     command_publisher_->on_activate();
+    diagnostics_publisher_->on_activate();
 
     const auto period = std::chrono::duration<double>(1.0 / control_rate_hz_);
     control_timer_ = create_wall_timer(
@@ -93,6 +96,10 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_deactivate(
     }
 
     publish_stop();
+
+    if (diagnostics_publisher_) {
+        diagnostics_publisher_->on_deactivate();
+    }
 
     if (command_publisher_) {
         command_publisher_->on_deactivate();
@@ -119,6 +126,7 @@ ControlAdapterNode::CallbackReturn ControlAdapterNode::on_cleanup(
     path_subscription_.reset();
     odometry_subscription_.reset();
     command_publisher_.reset();
+    diagnostics_publisher_.reset();
 
     RCLCPP_INFO(get_logger(), "Cleaned up control adapter");
     return CallbackReturn::SUCCESS;
@@ -176,8 +184,21 @@ void ControlAdapterNode::on_control_tick()
         path_received_at = path_received_at_;
     }
 
-    if (!policy_ || !pose || !odometry_received_at || !path_received_at) {
+    if (!policy_) {
         publish_stop();
+        publish_diagnostics(StopReason::invalid_input, false);
+        return;
+    }
+
+    if (!pose || !odometry_received_at) {
+        publish_stop();
+        publish_diagnostics(StopReason::missing_odometry, false);
+        return;
+    }
+
+    if (path.empty() || !path_received_at) {
+        publish_stop();
+        publish_diagnostics(StopReason::missing_path, false);
         return;
     }
 
@@ -196,6 +217,12 @@ void ControlAdapterNode::on_control_tick()
     if (command_publisher_ && command_publisher_->is_activated()) {
         command_publisher_->publish(command);
     }
+
+    publish_diagnostics(
+        decision.stop_reason,
+        decision.motion_enabled,
+        odometry_age,
+        path_age);
 }
 
 void ControlAdapterNode::publish_stop()
@@ -205,6 +232,51 @@ void ControlAdapterNode::publish_stop()
     }
 
     command_publisher_->publish(geometry_msgs::msg::Twist{});
+}
+
+void ControlAdapterNode::publish_diagnostics(
+    StopReason reason,
+    bool motion_enabled,
+    std::optional<double> odometry_age_s,
+    std::optional<double> path_age_s)
+{
+    if (!diagnostics_publisher_ || !diagnostics_publisher_->is_activated()) {
+        return;
+    }
+
+    diagnostic_msgs::msg::DiagnosticArray array;
+    array.header.stamp = now();
+
+    diagnostic_msgs::msg::DiagnosticStatus status;
+    status.name = "amr_control_adapter/control_policy";
+    status.hardware_id = "none";
+    status.level =
+        (reason == StopReason::none || reason == StopReason::goal_reached)
+            ? diagnostic_msgs::msg::DiagnosticStatus::OK
+            : diagnostic_msgs::msg::DiagnosticStatus::WARN;
+    status.message = std::string(to_string(reason));
+
+    diagnostic_msgs::msg::KeyValue motion_value;
+    motion_value.key = "motion_enabled";
+    motion_value.value = motion_enabled ? "true" : "false";
+    status.values.push_back(std::move(motion_value));
+
+    if (odometry_age_s) {
+        diagnostic_msgs::msg::KeyValue age_value;
+        age_value.key = "odometry_age_s";
+        age_value.value = std::to_string(*odometry_age_s);
+        status.values.push_back(std::move(age_value));
+    }
+
+    if (path_age_s) {
+        diagnostic_msgs::msg::KeyValue age_value;
+        age_value.key = "path_age_s";
+        age_value.value = std::to_string(*path_age_s);
+        status.values.push_back(std::move(age_value));
+    }
+
+    array.status.push_back(std::move(status));
+    diagnostics_publisher_->publish(array);
 }
 
 void ControlAdapterNode::clear_runtime_state()

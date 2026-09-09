@@ -27,6 +27,16 @@ TEST(ControlPolicy, RejectsInvalidConfiguration)
     EXPECT_FALSE(amr_control_adapter::valid_config(config));
 }
 
+TEST(ControlPolicy, StopReasonStringsAreStable)
+{
+    EXPECT_EQ(
+        amr_control_adapter::to_string(StopReason::missing_odometry),
+        "missing_odometry");
+    EXPECT_EQ(
+        amr_control_adapter::to_string(StopReason::missing_path),
+        "missing_path");
+}
+
 TEST(ControlPolicy, StopsWithoutPath)
 {
     ControlPolicy policy(ControlPolicyConfig{});
