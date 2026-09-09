@@ -51,12 +51,16 @@ It verifies this sequence:
 This test checks both the command-side safety behavior and the diagnostic reason
 reported to operators/tests.
 
+## Rosbag replay
+
+The second v0.4 slice adds a real rosbag2 sqlite3 replay regression. See
+[`REPLAY.md`](REPLAY.md) for the checked-in source fixture, generation method,
+repeatability contract, and reproduction command.
+
 ## Remaining v0.4 work
 
 The following remain intentionally open:
 
-- rosbag replay fixture
-- deterministic replay runner
 - missing-TF fault injection in the navigation layer
 - replay timing/latency metrics
 - verification record on merged `main`
