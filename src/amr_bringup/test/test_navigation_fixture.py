@@ -5,6 +5,8 @@ import unittest
 
 from action_msgs.msg import GoalStatus
 from geometry_msgs.msg import PoseWithCovarianceStamped
+from lifecycle_msgs.msg import State
+from lifecycle_msgs.srv import GetState
 from nav2_msgs.action import NavigateToPose
 from nav_msgs.msg import Odometry
 import launch
@@ -13,6 +15,7 @@ from launch.actions import ExecuteProcess
 import pytest
 import rclpy
 from rclpy.action import ActionClient
+from tf2_ros import Buffer, TransformListener
 
 
 START_X = -2.0
@@ -78,11 +81,22 @@ class TestDeterministicNavigationFixture(unittest.TestCase):
             NavigateToPose,
             "/navigate_to_pose",
         )
+        self.lifecycle_client = self.node.create_client(
+            GetState,
+            "/bt_navigator/get_state",
+        )
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(
+            self.tf_buffer,
+            self.node,
+            spin_thread=False,
+        )
 
     def tearDown(self):
         self.node.destroy_subscription(self.odom_sub)
         self.node.destroy_publisher(self.initial_pose_pub)
         self.client.destroy()
+        self.node.destroy_client(self.lifecycle_client)
         self.node.destroy_node()
 
     def _odom_callback(self, msg):
@@ -102,6 +116,61 @@ class TestDeterministicNavigationFixture(unittest.TestCase):
             if predicate():
                 return True
         return False
+
+    def _wait_for_bt_navigator_active(self):
+        self.assertTrue(
+            self.lifecycle_client.wait_for_service(timeout_sec=20.0),
+            "bt_navigator lifecycle service did not become available",
+        )
+
+        deadline = time.monotonic() + 30.0
+        last_state = "unknown"
+
+        while time.monotonic() < deadline:
+            future = self.lifecycle_client.call_async(GetState.Request())
+            if self._spin_until(lambda: future.done(), 5.0):
+                response = future.result()
+                if response is not None:
+                    last_state = response.current_state.label
+                    if response.current_state.id == State.PRIMARY_STATE_ACTIVE:
+                        return
+            time.sleep(0.1)
+
+        self.fail(
+            "bt_navigator did not reach ACTIVE state; "
+            f"last observed state: {last_state}"
+        )
+
+    def _assert_tf_chain(self):
+        expected_edges = [
+            ("map", "odom"),
+            ("odom", "base_link"),
+            ("base_link", "base_scan"),
+        ]
+        deadline = time.monotonic() + 20.0
+
+        while time.monotonic() < deadline:
+            rclpy.spin_once(self.node, timeout_sec=0.1)
+            if all(
+                self.tf_buffer.can_transform(
+                    target,
+                    source,
+                    rclpy.time.Time(),
+                )
+                for target, source in expected_edges
+            ):
+                return
+
+        missing = [
+            f"{target} <- {source}"
+            for target, source in expected_edges
+            if not self.tf_buffer.can_transform(
+                target,
+                source,
+                rclpy.time.Time(),
+            )
+        ]
+        self.fail(f"Expected TF chain was not available: {missing}")
 
     def _publish_initial_pose(self):
         discovery_deadline = time.monotonic() + 20.0
@@ -147,9 +216,12 @@ class TestDeterministicNavigationFixture(unittest.TestCase):
         # become active. Planner/controller costmaps need that TF during
         # lifecycle activation.
         self._publish_initial_pose()
+        self._assert_tf_chain()
+
+        self._wait_for_bt_navigator_active()
 
         self.assertTrue(
-            self.client.wait_for_server(timeout_sec=60.0),
+            self.client.wait_for_server(timeout_sec=20.0),
             "NavigateToPose action server did not become available",
         )
 
