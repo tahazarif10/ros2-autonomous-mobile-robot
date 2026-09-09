@@ -33,19 +33,22 @@ flowchart LR
     V --> B[Differential Drive Base]
 ```
 
-The control adapter is planned to consume the existing
+The lifecycle-aware control adapter consumes the existing
 [`robotics-control-core`](https://github.com/tahazarif10/robotics-control-core)
-library rather than duplicating planner/controller math inside ROS 2 nodes.
+library at a pinned commit rather than duplicating planner/controller math inside ROS 2 nodes.
 
 ## Repository layout
 
 ```text
 .
 ├── src/
-│   ├── amr_description/   # Robot model and geometry
-│   └── amr_bringup/       # Launch and system composition
+│   ├── amr_description/      # Robot model and geometry
+│   ├── amr_bringup/          # Launch and system composition
+│   └── amr_control_adapter/  # Lifecycle ROS 2 boundary around control core
 ├── docs/
 │   ├── ARCHITECTURE.md
+│   ├── CONTROL_ADAPTER.md
+│   ├── VERIFICATION.md
 │   └── ROADMAP.md
 └── .github/workflows/
     └── ci.yml
@@ -53,9 +56,9 @@ library rather than duplicating planner/controller math inside ROS 2 nodes.
 
 ## Current status
 
-**v0.1 reproducible ROS 2 baseline — complete**
+**v0.2 control-core adapter — complete**
 
-The v0.1 slice establishes a reproducible ROS 2 workspace, a differential-drive robot description, headless launch verification, CI, and a clear contract for later control/Nav2 integration. Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+The repository now has a reproducible ROS 2 baseline plus a C++ lifecycle adapter that consumes the standalone `robotics-control-core` library at a pinned commit. The adapter converts Path/Odometry inputs, publishes bounded `cmd_vel`, and enforces safe-stop behavior for stale, missing, or non-finite data. Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
 
 No hardware-performance claims are made by this repository. Simulation and regression results will be reported only for the exact checked-in fixtures and configurations used to produce them.
 
@@ -88,7 +91,7 @@ ros2 launch amr_bringup display.launch.py
 - simulation before hardware claims
 - CI evidence for every merge
 
-See [Architecture](docs/ARCHITECTURE.md), [Verification](docs/VERIFICATION.md), and [Roadmap](docs/ROADMAP.md).
+See [Architecture](docs/ARCHITECTURE.md), [Control adapter contract](docs/CONTROL_ADAPTER.md), [Verification](docs/VERIFICATION.md), and [Roadmap](docs/ROADMAP.md).
 
 ## License
 

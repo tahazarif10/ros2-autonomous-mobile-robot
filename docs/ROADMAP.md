@@ -16,13 +16,13 @@ The roadmap is evidence-driven. A milestone is complete only when its implementa
 
 ## v0.2 — Control-core adapter
 
-- [ ] define adapter input/output contract
-- [ ] consume `robotics-control-core` without copying algorithm code
-- [ ] path + odometry conversion
-- [ ] bounded `cmd_vel` output
-- [ ] stale input and invalid-data handling
-- [ ] lifecycle support
-- [ ] unit and integration tests
+- [x] define adapter input/output contract
+- [x] consume `robotics-control-core` without copying algorithm code
+- [x] path + odometry conversion
+- [x] bounded `cmd_vel` output
+- [x] stale input and invalid-data handling
+- [x] lifecycle support
+- [x] unit and lifecycle integration tests
 
 ## v0.3 — Navigation integration
 
