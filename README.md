@@ -4,9 +4,15 @@
 [![ROS 2](https://img.shields.io/badge/ROS%202-Jazzy-22314E)](https://docs.ros.org/en/jazzy/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 
-An engineering-oriented autonomous mobile robot stack built around **ROS 2, C++, Nav2, deterministic testing, and reusable control software**.
+[**Portfolio**](https://github.com/tahazarif10) · [**Resume**](https://github.com/tahazarif10/tahazarif10/blob/main/RESUME.md) · [**Evidence**](https://github.com/tahazarif10/tahazarif10/blob/main/EVIDENCE.md) · [**LinkedIn**](https://www.linkedin.com/in/taha-zarif-bba94b397/) · [**Control core**](https://github.com/tahazarif10/robotics-control-core)
 
-The project is intentionally developed in measurable slices. Each milestone must leave behind buildable code, automated verification, and reproducible evidence rather than a demo-only repository.
+**An engineering-oriented autonomous mobile robot stack built around ROS 2, C++, Nav2, deterministic testing, and reusable control software.**
+
+The project is developed in measurable slices. Each milestone must leave behind buildable code, automated verification, and reproducible evidence rather than a demo-only repository.
+
+## Why this repository exists
+
+This project is the middleware/integration layer of the robotics portfolio. It consumes the standalone [`robotics-control-core`](https://github.com/tahazarif10/robotics-control-core) at a pinned commit rather than duplicating planning and control algorithms inside ROS 2 callbacks. That keeps algorithm behavior independently testable while this repository concentrates on lifecycle, TF, QoS, Nav2, replay, diagnostics, and integration failure modes.
 
 ## Baseline
 
@@ -33,9 +39,29 @@ flowchart LR
     V --> B[Differential Drive Base]
 ```
 
-The lifecycle-aware control adapter consumes the existing
-[`robotics-control-core`](https://github.com/tahazarif10/robotics-control-core)
-library at a pinned commit rather than duplicating planner/controller math inside ROS 2 nodes.
+The lifecycle-aware control adapter consumes the existing [`robotics-control-core`](https://github.com/tahazarif10/robotics-control-core) library at a pinned commit rather than duplicating planner/controller math inside ROS 2 nodes.
+
+## Current status
+
+**v0.4 replay, observability, and fault injection — complete**
+
+Verified software/system scope:
+
+- lifecycle-aware C++20 control adapter
+- bounded `cmd_vel` output and explicit safe-stop behavior
+- deterministic Nav2 fixture using NavFn A* + Regulated Pure Pursuit
+- explicit TF ownership and runtime TF verification
+- documented QoS contracts
+- diagnostics with stable stop reasons and input-age observability
+- NaN, stale-odometry, and stale-path fault injection with zero-command safe stop
+- real rosbag2 sqlite3 fixture generated from checked-in source data
+- same bag replayed twice through the live lifecycle adapter with equal canonical outcomes
+- missing-global-TF regression verifying `bt_navigator` remains non-ACTIVE and no non-zero `cmd_vel` is produced
+- namespace/test-graph isolation to prevent concurrent ROS test contamination
+
+The checked-in v0.3 navigation scenario is a 6 m × 6 m software fixture using NavFn with A* enabled and Regulated Pure Pursuit. Navigation, timing, replay, and safety-response results are explicitly scoped to the checked-in software fixtures and are not physical-hardware or safety-certification claims.
+
+Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md). Replay and failure-handling contracts are documented in [`docs/REPLAY.md`](docs/REPLAY.md) and [`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md).
 
 ## Repository layout
 
@@ -56,31 +82,6 @@ library at a pinned commit rather than duplicating planner/controller math insid
 └── .github/workflows/
     └── ci.yml
 ```
-
-## Current status
-
-**v0.4 replay, observability, and fault injection — complete**
-
-The repository now combines the lifecycle control-core adapter and deterministic
-Nav2 fixture with software-level failure handling and replay evidence:
-
-- diagnostics with stable stop reasons and input ages
-- NaN, stale-odometry, and stale-path fault injection with zero-command safe stop
-- a real rosbag2 sqlite3 fixture generated from checked-in source data
-- the same bag replayed twice through the live lifecycle adapter with identical canonical outcomes
-- captured bag-span, replay-pacing, command-count, diagnostic-count, and bounded-command metrics
-- a missing-TF Nav2 regression that removes `map -> odom` / `odom -> base_link`, verifies `bt_navigator` never becomes ACTIVE, and verifies no non-zero `cmd_vel`
-- test-graph isolation so concurrently executed ROS 2 packages cannot contaminate each other's odometry or command topics
-
-The checked-in v0.3 navigation scenario remains a 6 m × 6 m fixture using NavFn
-with A* enabled and Regulated Pure Pursuit. All navigation, timing, and replay
-results are explicitly scoped to the checked-in software fixtures and are not
-physical-hardware or safety-certification claims.
-
-Hosted verification is recorded in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
-Replay and failure-handling contracts are documented in
-[`docs/REPLAY.md`](docs/REPLAY.md) and
-[`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md).
 
 ## Build
 
@@ -120,6 +121,12 @@ The end-to-end fixture assertion runs through `colcon test` in CI.
 - CI evidence for every merge
 
 See [Architecture](docs/ARCHITECTURE.md), [Control adapter contract](docs/CONTROL_ADAPTER.md), [Nav2 fixture](docs/NAV2_FIXTURE.md), [Verification](docs/VERIFICATION.md), and [Roadmap](docs/ROADMAP.md).
+
+## Related portfolio work
+
+- [robotics-control-core](https://github.com/tahazarif10/robotics-control-core) — middleware-independent C++20 navigation/control core consumed by this stack.
+- [embedded-rtos-sensor-hub](https://github.com/tahazarif10/embedded-rtos-sensor-hub) — bounded Zephyr RTOS sensor-pipeline work and deterministic fault injection.
+- [Engineering Evidence](https://github.com/tahazarif10/tahazarif10/blob/main/EVIDENCE.md) — claim-level verification links across the portfolio.
 
 ## License
 
